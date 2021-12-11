@@ -1,5 +1,9 @@
 ### Scratch ### 
 
+# local get sync committeee
+# curl -X GET "http://10.1.1.30:5052/eth/v1/beacon/states/head/sync_committees?epoch=84480" -H  "accept: application/json" | jq '.data.validators'
+# uncomment ports in rocketpool/docker-compose.yml
+
 # https://beaconcha.in/api/v1/docs/index.html
 # https://cran.r-project.org/web/packages/httr/vignettes/api-packages.html
 
@@ -21,7 +25,7 @@
 
 
 if (!require("pacman")) install.packages("pacman"); library(pacman)
-p_load(httr, jsonlite, dplyr, tidyr, stringr)
+p_load(httr, jsonlite, dplyr, tidyr, stringr, usethis, DT)
 
 #Rmpfr  ### large hex
 # goal, setup api access framework to beaconchain
@@ -29,13 +33,11 @@ p_load(httr, jsonlite, dplyr, tidyr, stringr)
 
 base_url <- "https://beaconcha.in/api/v1"
 
-paste0(base_url,
-       "/api/v1/epoch/", 
-       str_trim("82289"), 
-       "/blocks")
 
-beaconcha_in_epoch_blocks <- function(epoch_number = "82289") {
+
+beaconchain_epoch_blocks <- function(epoch_number = "82289") {
   
+  # epoch is defined in the url stucture (www.llama.com/api/epoch/epoch_num) instead of parameter (wwwl.llama.com/api/epoch?epoch_num) for this call
   url <- paste0(base_url,
                 "/epoch/", 
                 str_trim(epoch_number), 
@@ -66,27 +68,50 @@ beaconcha_in_epoch_blocks <- function(epoch_number = "82289") {
     )
   }
   
-  
+  # Transform json output to dataframe
   parsed_transformed <- parsed$data %>% 
     as_tibble()
   
+  # Define class
   structure(
     list(
       content = parsed_transformed,
-      path = url,
-      response = resp
+      path = url
     ),
-    class = "beaconcha.in_api"
+    class = "beaconchain_api"
   )
+  
+  return(parsed_transformed)
+  
   
 }
 
+# Print out for class
 print.beaconcha_in_api <- function(x, ...) {
-  cat("<Beaconcha_in ", x$path, ">\n", sep = "")
+  cat("<Beaconchain ", x$path, ">\n", sep = "")
   str(x$content)
   invisible(x)
 }
 
-beaconcha_in_epoch_blocks()
+
+test2 <- beaconchain_epoch_blocks()
+test2
+
+######## Blocks from Multiple Epochs ####
+
+max_epoch = "82280"
+min_epoch = "82275"
+
+is.na(as.numeric(max_epoch))
+
+epochs <- seq(as.numeric(min_epoch), as.numeric(max_epoch))
 
 
+epochs[1]
+
+df <- beaconchain_epoch_blocks(epoch_number = epochs[1])
+df
+
+
+test <- lapply(epochs, beaconchain_epoch_blocks) %>%
+  bind_rows()
